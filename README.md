@@ -1,88 +1,205 @@
-### Color Coding Legend
-| Color Symbol | Type               | Purpose                                                                 |
-|--------------|--------------------|-------------------------------------------------------------------------|
-| 🔴 Red       | Primary Key        | Marks the unique identifier (`deal_num`) that uniquely identifies each deal |
-| 🟢 Green     | Deduplication Key  | Marks fields used to eliminate duplicate records for related entities   |
-## MA firm financial information ##
-#### **Basic Deal Information**
-| Original Pattern | Standardized Output |
-|-----------------|---------------------|
-| Deal Number | 🔴 `deal_num` |
-| Deal type | `deal_type` |
-| Deal status | `deal_status` |
+# 并购顾问数据处理流程
+## 数据量变化流程图
+```
+原始CSV文件 (1-5号)
+├── advisor1_cleaned.csv: 16,370 obs
+├── advisor2_cleaned.csv: 13,858 obs
+├── advisor3_cleaned.csv: 11,111 obs
+├── advisor4_cleaned.csv: 8,975 obs
+├── advisor5_cleaned.csv: 695 obs
+└── 合计: 51,009 obs
+↓
+process程序处理每个文件
+(ID变量转字符串、前向填充deal_num、保留核心变量)
+↓
+临时文件 (advisor1-5.dta): 各文件保留原观测数
+(从184个变量精简到24个核心变量)
+↓
+append合并 (从5到1倒序追加)
+↓
+合并后数据集: 51,009 obs
+↓
+按实体拆分数据集
+├── 目标公司(tar)层面: 保留所有obs
+│ └── 按deal_num+目标公司去重: 删除 18,029 obs
+│ └── tar_advisor.dta: 32,980 obs
+│
+├── 收购公司(acq)层面: 保留所有obs
+│ └── 按deal_num+收购公司去重: 删除 16,823 obs
+│ └── acq_advisor.dta: 34,186 obs
+│
+└── 卖方公司(ven)层面: 保留所有obs
+└── 按deal_num去重: 删除 28,760 obs
+└── ven_advisor.dta: 22,249 obs
+```
+## 数据量变化流程图
+## 完整数据量变化汇总表
 
-#### **Entity Identifiers**
-| Original Pattern | Standardized Output |
-|-----------------|---------------------|
-| Target name | 🟢`tar_name` |
-| Target BvD ID number |🟢 `tar_bvd_id_num` |
-| Target Orbis ID number | 🟢`tar_orbis_id_num` |
-| Acquiror name | 🟢`acq_name` |
-| Acquiror BvD ID number |🟢 `acq_bvd_id_num` |
-| Acquiror Orbis ID number | 🟢`acq_orbis_id_num` |
-| Vendor name |`ven_name` |
-| Vendor BvD ID number |`ven_bvd_id_num` |
-| Vendor Orbis ID number | `ven_orbis_id_num` |
-| Acquiror country code | `acq_country` |
-| Target country code | `tar_country` |
+| 阶段 | 观测数 | 操作说明 |
+|------|--------|----------|
+| **原始数据合计** | **51,009** | 5个CSV文件总和 |
+| 合并后数据集 | 51,009 | append合并完成 |
+| **temp.dta** | **51,009** | 合并后完整数据集 |
 
-#### **Deal Value Metrics**
-| Original Pattern | Standardized Output |
-|-----------------|---------------------|
-| Deal value th USD | `DV` |
-| Deal value (Native currency) th USD | `DV_local` |
-| Deal equity value th USD | `EQV` |
-| Deal equity value (Native currency) th USD | `EQV_local` |
-| Deal enterprise value th USD | `EV` |
-| Deal enterprise value (Native currency) th USD | `EV_local` |
-| Deal modelled enterprise value th USD | `MEV` |
-| Deal modelled enterprise value (Native currency) th USD | `MEV_local` |
-| Deal total target value th USD | `T_tar_value` |
-| Deal total target value (Native currency) th USD | `T_tar_value_local` |
-| Modelled Fee Income th USD | `M_fee` |
-| As Reported Fee Income th USD | `reported_fee` |
+### 目标公司(tar)顾问子集处理流程
 
-### 3. **Financial Abbreviation Dictionary**
+| 阶段 | 观测数 | 操作说明 |
+|------|--------|----------|
+| 初始筛选 | 51,009 | 从temp.dta选取tar相关变量 |
+| 按deal_num+目标公司去重 | 删除 18,029 | 每个交易-目标公司保留一条记录 |
+| **tar_advisor.dta** | **32,980** | 最终目标公司顾问数据集 |
 
-| Term Pattern | Abbreviation | Description |
-|--------------|--------------|-------------|
-| acquiror | `acq` | Acquiror entity |
-| target | `tar` | Target entity |
-| vendor | `ven` | Vendor entity |
-| operating revenue, revenue, turnover | `rev` | Revenue metrics |
-| ebitda | `ebitda` | EBITDA |
-| ebit | `ebit` | EBIT |
-| profit before tax | `pbt` | Profit before tax |
-| profit after tax | `pat` | Profit after tax |
-| net profit | `np` | Net profit |
-| total assets | `ta` | Total assets |
-| net assets | `na` | Net assets |
-| shareholders funds | `eq` | Shareholders equity |
-| market capitalisation | `cap` | Market cap |
-| number of employees | `emp` | Employee count |
-| enterprise value | `ev` | Enterprise value |
-| earnings per share | `eps` | EPS |
-| cash flow per share | `cfps` | CFPS |
-| dividend per share | `dps` | DPS |
-| book value per share | `bvps` | BVPS |
-| last avail yr | `ly` | Last available year |
-| year 1 | `y1` | Year 1 |
-| year 2 | `y2` | Year 2 |
-| first | `1st` | First available |
-| future | `fut` | Future estimates |
-| multiple | `mul` | Multiple values |
-| estimate | `est` | Estimates |
-| year | `yr` | Year indicator |
+### 收购公司(acq)顾问子集处理流程
 
-### 4. **Prefix Handling**
-| Pattern | Standardized |
-|---------|--------------|
-| pre_deal_ | `pre_` |
-| post_deal_ | `post_` |
+| 阶段 | 观测数 | 操作说明 |
+|------|--------|----------|
+| 初始筛选 | 51,009 | 从temp.dta选取acq相关变量 |
+| 按deal_num+收购公司去重 | 删除 16,823 | 每个交易-收购公司保留一条记录 |
+| **acq_advisor.dta** | **34,186** | 最终收购公司顾问数据集 |
 
-### 5. **Entity Type Normalization**
-| Pattern | Standardized |
-|---------|--------------|
-| _target_ | `_tar_` |
-| _acquiror_ | `_acq_` |
-| _vendor_ | `_ven_` |
+### 卖方公司(ven)顾问子集处理流程
+
+| 阶段 | 观测数 | 操作说明 |
+|------|--------|----------|
+| 初始筛选 | 51,009 | 从temp.dta选取ven相关变量 |
+| 按deal_num去重 | 删除 28,760 | 每个交易保留一条记录 |
+| **ven_advisor.dta** | **22,249** | 最终卖方公司顾问数据集 |
+
+## 变量说明
+
+### 保留的核心变量 (24个)
+
+#### 通用变量
+
+| 变量名 | 含义 |
+|--------|------|
+| `index` | 行索引 |
+| `ïunnamed_0` | 原始行号 |
+| `deal_num` | 交易编号 |
+| `acq_name` | 收购公司名称 |
+| `tar_name` | 目标公司名称 |
+| `deal_type` | 交易类型 |
+| `deal_status` | 交易状态 |
+
+#### 目标公司(tar)相关变量
+
+| 变量名 | 含义 |
+|--------|------|
+| `tar_bvd_id` | 目标公司BvD ID |
+| `tar_orbis_id` | 目标公司Orbis ID |
+| `tar_adv_fa_name` | 目标公司财务顾问名称 |
+| `tar_adv_law_name` | 目标公司法务顾问名称 |
+| `tar_adv_bvd_id_financial_adv` | 目标公司财务顾问BvD ID |
+| `tar_adv_bvd_id_law` | 目标公司法务顾问BvD ID |
+| `tar_adv_orbis_id_financial_adv` | 目标公司财务顾问Orbis ID |
+| `tar_adv_orbis_id_law` | 目标公司法务顾问Orbis ID |
+
+#### 收购公司(acq)相关变量
+
+| 变量名 | 含义 |
+|--------|------|
+| `acq_bvd_id` | 收购公司BvD ID |
+| `acq_orbis_id` | 收购公司Orbis ID |
+| `acq_adv_fa_name` | 收购公司财务顾问名称 |
+| `acq_adv_law_name` | 收购公司法务顾问名称 |
+| `acq_adv_bvd_id_financial_adv` | 收购公司财务顾问BvD ID |
+| `acq_adv_bvd_id_law` | 收购公司法务顾问BvD ID |
+| `acq_adv_orbis_id_financial_adv` | 收购公司财务顾问Orbis ID |
+| `acq_adv_orbis_id_law` | 收购公司法务顾问Orbis ID |
+
+#### 卖方公司(ven)相关变量
+
+| 变量名 | 含义 |
+|--------|------|
+| `ven_bvd_id` | 卖方公司BvD ID |
+| `ven_orbis_id` | 卖方公司Orbis ID |
+| `ven_adv_fa_name` | 卖方公司财务顾问名称 |
+| `ven_adv_law_name` | 卖方公司法务顾问名称 |
+| `ven_adv_bvd_id_financial_adv` | 卖方公司财务顾问BvD ID |
+| `ven_adv_bvd_id_law` | 卖方公司法务顾问BvD ID |
+| `ven_adv_orbis_id_financial_adv` | 卖方公司财务顾问Orbis ID |
+| `ven_adv_orbis_id_law` | 卖方公司法务顾问Orbis ID |
+
+## 生成的计数变量
+
+| 变量名 | 含义 |
+|--------|------|
+| `tar_fa_count` | 目标公司财务顾问数量 |
+| `tar_law_count` | 目标公司法务顾问数量 |
+| `acq_fa_count` | 收购公司财务顾问数量 |
+| `acq_law_count` | 收购公司法务顾问数量 |
+| `ven_fa_count` | 卖方公司财务顾问数量 |
+| `ven_law_count` | 卖方公司法务顾问数量 |
+
+## 重复记录处理情况
+
+| 实体 | 去重前观测数 | 删除重复数 | 删除率 | 最终观测数 |
+|------|-------------|-----------|--------|------------|
+| 目标公司(tar) | 51,009 | 18,029 | 35.3% | 32,980 |
+| 收购公司(acq) | 51,009 | 16,823 | 33.0% | 34,186 |
+| 卖方公司(ven) | 51,009 | 28,760 | 56.4% | 22,249 |
+
+## 顾问数量统计
+
+### 目标公司顾问情况
+
+| 统计指标 | 财务顾问 | 法务顾问 |
+|----------|---------|---------|
+| 有顾问的交易数 | 待计算 | 待计算 |
+| 平均顾问数量 | 基于`tar_fa_count` | 基于`tar_law_count` |
+
+### 收购公司顾问情况
+
+| 统计指标 | 财务顾问 | 法务顾问 |
+|----------|---------|---------|
+| 有顾问的交易数 | 待计算 | 待计算 |
+| 平均顾问数量 | 基于`acq_fa_count` | 基于`acq_law_count` |
+
+### 卖方公司顾问情况
+
+| 统计指标 | 财务顾问 | 法务顾问 |
+|----------|---------|---------|
+| 有顾问的交易数 | 待计算 | 待计算 |
+| 平均顾问数量 | 基于`ven_fa_count` | 基于`ven_law_count` |
+
+## 关键观察
+
+1. **原始数据总量**：51,009条观测，来自5个批次文件，规模逐批递减(从16,370到695)
+
+2. **数据精简**：
+   - 从184个变量精简到24个核心变量
+   - 大幅减少数据体积，提高处理效率
+   - 保留所有顾问相关的ID和名称信息
+
+3. **数据类型转换**：
+   - 将所有顾问相关ID变量转换为字符串格式
+   - 防止数值型ID在合并时精度丢失
+   - `tar_name`和`acq_name`保持字符串格式
+
+4. **重复记录**：
+   - 目标公司层面：删除18,029条重复(35.3%)，每个交易-目标公司保留一条记录
+   - 收购公司层面：删除16,823条重复(33.0%)，每个交易-收购公司保留一条记录
+   - 卖方公司层面：删除28,760条重复(56.4%)，每个交易保留一条记录
+   - 卖方公司重复率最高，说明同一卖方可能出现在多个交易中
+
+5. **实体分布**：
+   - 目标公司：32,980条唯一记录
+   - 收购公司：34,186条唯一记录
+   - 卖方公司：22,249条唯一记录
+   - 卖方公司数量明显少于买卖双方，符合并购交易结构
+
+6. **数据质量**：
+   - 收购公司数据最完整(34,186条)
+   - 目标公司数据次之(32,980条)
+   - 卖方公司数据最少(22,249条)，说明卖方信息记录最不完整
+
+## 核心用途
+
+这个数据集提供并购交易中**目标公司、收购公司和卖方公司**的顾问信息，可用于：
+
+- 顾问参与度分析
+- 财务顾问与法务顾问的分布研究
+- 顾问机构的市场份额分析
+- 顾问选择与交易特征的关系研究
+- 与财务数据、行业数据匹配后进行综合分析
+- 顾问网络对并购交易的影响研究
