@@ -1,78 +1,77 @@
+# Company Financial Dataset - Processing Pipeline & Variable Definition
 
-## 📋 完整数据量变化汇总表
+## 1. Data Volume Change Flowchart
+The flowchart above illustrates the full processing pipeline for the Company Financial dataset, with key data volume changes at each step.
 
-| 数据集 | 初始观测数 | 操作 | 删除数量 | 最终观测数 |
-|--------|-----------|------|---------|-----------|
-| **原始数据合计** | **75,841** | - | - | - |
-| 合并后数据集 | 75,841 | - | - | 75,841 |
-| 前向填充后 | 75,841 | 填充32,249个deal_num | - | 75,841 |
-| 去重后 | 75,841 | 按公司标识去重 | 3,462 | **72,379** |
-| `acq_tar_fin.dta` | 72,379 | 目标公司去重 | 19,877 | **52,502** |
-| `acq_acq_fin.dta` | 72,379 | 收购方去重 | 18,281 | **54,098** |
-| `acq_com_fin_with_ln.dta` | 72,379 | 生成对数变量 | 0 | **72,379** |
+## 2. Key Data Volume Summary
+| Dataset Stage               | Initial Obs | Action                                  | Removed Obs | Final Obs |
+|-----------------------------|-------------|-----------------------------------------|-------------|-----------|
+| Raw CSV (1-8)               | -           | Aggregation                             | -           | 75,841    |
+| Merged Dataset              | 75,841      | Forward fill deal_num (32,249 missing)  | 0           | 75,841    |
+| Post-Deduplication (Company ID) | 75,841  | Remove duplicates                       | 3,462       | 72,379    |
+| acq_tar_fin.dta (Target)    | 72,379      | Deduplicate by deal_num + target ID     | 19,877      | 52,502    |
+| acq_acq_fin.dta (Acquirer)  | 72,379      | Deduplicate by deal_num + acquirer ID   | 18,281      | 54,098    |
+| acq_com_fin_with_ln.dta     | 72,379      | Add 144 log variables                   | 0           | 72,379    |
 
-## 📐 财务比率生成汇总
+## 3. Financial Ratio Generation
+### 3.1 Target Company Ratios (21 Total: 7 Categories × 3 Time Points)
+| Ratio Category          | Latest Year (ly) | Y1 (1 Year Prior) | Y2 (2 Years Prior) |
+|-------------------------|------------------|-------------------|--------------------|
+| Profit Margin           | ✓                | ✓                 | ✓                  |
+| Return on Assets (ROA)  | ✓                | ✓                 | ✓                  |
+| Leverage                | ✓                | ✓                 | ✓                  |
+| EBITDA Margin           | ✓                | ✓                 | ✓                  |
+| Asset Turnover          | ✓                | ✓                 | ✓                  |
+| Revenue per Employee    | ✓                | ✓                 | ✓                  |
+| Size Metrics (ln)       | ✓                | ✓                 | ✓                  |
 
-### 目标公司(Target)财务比率 - 7类 × 3年 = 21个
-| 比率类别 | ly (最新年) | y1 (前1年) | y2 (前2年) |
-|---------|------------|-----------|-----------|
-| 利润率 (profit_margin) | ✓ | ✓ | ✓ |
-| 资产收益率 (roa) | ✓ | ✓ | ✓ |
-| 杠杆率 (leverage) | ✓ | ✓ | ✓ |
-| EBITDA利润率 (ebitda_margin) | ✓ | ✓ | ✓ |
-| 资产周转率 (asset_turnover) | ✓ | ✓ | ✓ |
-| 人均收入 (rev_per_emp) | ✓ | ✓ | ✓ |
-| 规模指标 (ta/emp/cap/ev取ln) | ✓ | ✓ | ✓ |
+### 3.2 Acquirer Company Ratios (18 Total: 6 Categories × 3 Time Points)
+| Ratio Category          | Latest Year (ly) | Y1 (1 Year Prior) | Y2 (2 Years Prior) |
+|-------------------------|------------------|-------------------|--------------------|
+| Profit Margin           | ✓                | ✓                 | ✓                  |
+| Return on Assets (ROA)  | ✓                | ✓                 | ✓                  |
+| Leverage                | ✓                | ✓                 | ✓                  |
+| EBITDA Margin           | ✓                | ✓                 | ✓                  |
+| Asset Turnover          | ✓                | ✓                 | ✓                  |
+| Size Metrics (ln)       | ✓                | ✓                 | ✓                  |
 
-### 收购方(Acquirer)财务比率 - 6类 × 3年 = 18个
-| 比率类别 | ly (最新年) | y1 (前1年) | y2 (前2年) |
-|---------|------------|-----------|-----------|
-| 利润率 (profit_margin) | ✓ | ✓ | ✓ |
-| 资产收益率 (roa) | ✓ | ✓ | ✓ |
-| 杠杆率 (leverage) | ✓ | ✓ | ✓ |
-| EBITDA利润率 (ebitda_margin) | ✓ | ✓ | ✓ |
-| 资产周转率 (asset_turnover) | ✓ | ✓ | ✓ |
-| 规模指标 (ta/emp/cap/ev取ln) | ✓ | ✓ | ✓ |
+## 4. Log Variable Definition (144 Total)
+### 4.1 Naming Convention
+| Component | Description                  | Examples          |
+|-----------|------------------------------|-------------------|
+| Prefix    | Log transformation           | `ln_`             |
+| Entity    | Company type                 | `t`(Target), `a`(Acquirer), `v`(Vendor) |
+| Metric    | Financial indicator          | `rev`(Revenue), `ebd`(EBITDA), `ta`(Total Assets), `cap`(Market Cap), `emp`(Employees) |
+| Time      | Time point (0=Latest, 1=Y1, 2=Y2) | `0`, `1`, `2`    |
 
-## �对数变量生成 - 共144个
+### 4.2 Variable Count Breakdown
+| Entity       | Metric Categories | Time Points | Total Variables |
+|--------------|-------------------|-------------|-----------------|
+| Target       | 16                | 3           | 48              |
+| Acquirer     | 16                | 3           | 48              |
+| Vendor       | 16                | 3           | 48              |
+| **Total**    | **48**            | -           | **144**         |
 
-### 命名规则
-- **前缀**: `ln_` (对数)
-- **实体**: `t`(目标), `a`(收购方), `v`(卖方)
-- **指标**: `rev`(收入), `ebd`(EBITDA), `ta`(总资产), `cap`(市值), `emp`(员工数)等
-- **时间**: `0`(最新年), `1`(前1年), `2`(前2年)
+### 4.3 Examples
+| Variable Name | Definition                                  |
+|---------------|---------------------------------------------|
+| `ln_t_rev_0`  | Log of Target's latest year revenue         |
+| `ln_a_cap_1`  | Log of Acquirer's market cap (1 year prior) |
+| `ln_v_ebd_2`  | Log of Vendor's EBITDA (2 years prior)      |
 
-### 变量命名示例
-| 变量名 | 含义 |
-|--------|------|
-| `ln_t_rev_0` | 目标公司最新年收入(对数) |
-| `ln_a_cap_1` | 收购方前1年市值(对数) |
-| `ln_v_ebd_2` | 卖方前2年EBITDA(对数) |
+## 5. Key Observations
+1. **Raw Data**: 75,841 observations from 8 CSV files, with significant volume variation across batches (3,395 to 14,498 obs per file).
+2. **Missing Values**: 42.5% of `deal_num` values (32,249) were missing and filled via forward fill.
+3. **Duplication**: 9.11% of observations (6,908) had duplicates; 3,462 were removed to retain 72,379 unique records.
+4. **Entity-Level Deduplication**:
+   - Target: 30.2% reduction (72,379 → 52,502) to retain 1 record per deal-target pair
+   - Acquirer: 25.3% reduction (72,379 → 54,098) to retain 1 record per deal-acquirer pair
+5. **Variable Generation**: 39 financial ratios (21 Target + 18 Acquirer) and 144 log-transformed variables for regression analysis.
+6. **Data Quality**: Severe missing values (30k-70k per financial metric) reflect incomplete raw financial data.
 
-### 各类公司指标数量分布
-| 公司类型 | 指标类别数 | 时间点 | 总变量数 |
-|---------|-----------|--------|---------|
-| 目标公司(Target) | 16 | 3 | 48 |
-| 收购方(Acquirer) | 16 | 3 | 48 |
-| 卖方(Vendor) | 16 | 3 | 48 |
-| **总计** | **48** | - | **144** |
-
-## 🔍 关键观察结论
-
-1. **原始数据规模**：75,841条观测记录，来源于8个批次的CSV文件
-2. **缺失值填充**：32,249个deal_num缺失值通过前向填充完成(占比42.5%)
-3. **数据去重效果**：
-   - 原始重复率9.11%(6,908条)，去重后保留72,379条有效观测
-   - 交易-公司维度二次去重：目标方保留52,502条，收购方保留54,098条
-4. **衍生变量生成**：
-   - 财务比率：39个(目标21个+收购18个)
-   - 对数变量：144个(覆盖三类公司×16类指标×3个时间点)
-5. **数据质量问题**：各财务指标缺失值严重(3万-7万条不等)，反映原始数据完整性不足
-
-## 🎯 核心用途
-
-该数据集为收购交易分析提供多维度财务支撑，主要用于：
-- 目标公司/收购方/卖方的财务健康度评估
-- 收购前后的财务绩效对比分析
-- 回归模型中的核心解释变量和控制变量
-- 公司规模、盈利能力、运营效率的量化分析
+## 6. Core Use Cases
+This dataset provides comprehensive financial data for Target/Acquirer/Vendor companies, including:
+- Raw financial metrics (Revenue, EBITDA, Total Assets, etc.)
+- Calculated financial ratios (Profitability, Efficiency, Leverage)
+- Log-transformed size metrics
+- Used for financial performance analysis, M&A research, and regression modeling (as control variables).
