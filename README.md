@@ -1,88 +1,360 @@
-### Color Coding Legend
-| Color Symbol | Type               | Purpose                                                                 |
-|--------------|--------------------|-------------------------------------------------------------------------|
-| 🔴 Red       | Primary Key        | Marks the unique identifier (`deal_num`) that uniquely identifies each deal |
-| 🟢 Green     | Deduplication Key  | Marks fields used to eliminate duplicate records for related entities   |
-## MA firm financial information ##
-#### **Basic Deal Information**
-| Original Pattern | Standardized Output |
-|-----------------|---------------------|
-| Deal Number | 🔴 `deal_num` |
-| Deal type | `deal_type` |
-| Deal status | `deal_status` |
+# 并购法律数据处理流程
 
-#### **Entity Identifiers**
-| Original Pattern | Standardized Output |
-|-----------------|---------------------|
-| Target name | 🟢`tar_name` |
-| Target BvD ID number |🟢 `tar_bvd_id_num` |
-| Target Orbis ID number | 🟢`tar_orbis_id_num` |
-| Acquiror name | 🟢`acq_name` |
-| Acquiror BvD ID number |🟢 `acq_bvd_id_num` |
-| Acquiror Orbis ID number | 🟢`acq_orbis_id_num` |
-| Vendor name |`ven_name` |
-| Vendor BvD ID number |`ven_bvd_id_num` |
-| Vendor Orbis ID number | `ven_orbis_id_num` |
-| Acquiror country code | `acq_country` |
-| Target country code | `tar_country` |
+## 数据量变化流程图
+```
+原始CSV文件 (1-2号)
+├── acquisition_legal_1_cleaned.csv: 51,428 obs
+├── acquisition_legal_2_cleaned.csv: 21,018 obs
+└── 合计: 72,446 obs
+↓
+process_file程序清洗
+(ID变量转字符串、替换n.a./n.s./-/NA为空)
+↓
+临时文件 (acq_legal_1-2.dta): 各文件保留原观测数
+(43个变量保持不变)
+↓
+append合并
+↓
+合并后数据集: 72,446 obs
+↓
+重命名ïdeal_num为deal_num
+↓
+生成index变量用于排序
+↓
+按deal_num前向填充缺失值: 31,420处填充
+↓
+按10个ID变量组合去重: 删除 67 obs (重复记录)
+↓
+deal_num转换为字符串格式
+↓
+acq_legal.dta: 72,379 obs
+↓
+按实体拆分法律特征数据
+├── 目标公司(tar)层面: 删除34,221 obs (缺失成立年份)
+│ └── 剩余: 38,158 obs
+│ └── 按ID去重: 删除 0 obs
+│ └── acq_tar_legal.dta: 38,158 obs
+│
+├── 收购公司(acq)层面: 删除30,212 obs (缺失成立年份)
+│ └── 剩余: 42,167 obs
+│ └── 按ID去重: 删除 4 obs
+│ └── acq_acq_legal.dta: 42,163 obs
+│
+└── 卖方公司(ven)层面: 删除48,433 obs (缺失成立年份)
+└── 剩余: 23,946 obs
+└── 按ID去重: 删除 388 obs
+└── acq_ven_legal.dta: 23,558 obs
+↓
+按实体拆分公司计数数据
+├── 目标公司(tar)计数: 删除30,684 obs (名称为空)
+│ └── 剩余: 41,695 obs
+│ └── 按ID去重: 删除 0 obs
+│ └── tar_count.dta: 41,695 obs
+│
+├── 收购公司(acq)计数: 删除28,021 obs (名称为空)
+│ └── 剩余: 44,358 obs
+│ └── 按ID去重: 删除 4 obs
+│ └── acq_count.dta: 44,354 obs
+│
+└── 卖方公司(ven)计数: 删除16,178 obs (名称为空)
+└── 剩余: 56,201 obs
+└── 按ID去重: 删除 540 obs
+└── ven_count.dta: 55,661 obs
+```
+## 完整数据量变化汇总表
 
-#### **Deal Value Metrics**
-| Original Pattern | Standardized Output |
-|-----------------|---------------------|
-| Deal value th USD | `DV` |
-| Deal value (Native currency) th USD | `DV_local` |
-| Deal equity value th USD | `EQV` |
-| Deal equity value (Native currency) th USD | `EQV_local` |
-| Deal enterprise value th USD | `EV` |
-| Deal enterprise value (Native currency) th USD | `EV_local` |
-| Deal modelled enterprise value th USD | `MEV` |
-| Deal modelled enterprise value (Native currency) th USD | `MEV_local` |
-| Deal total target value th USD | `T_tar_value` |
-| Deal total target value (Native currency) th USD | `T_tar_value_local` |
-| Modelled Fee Income th USD | `M_fee` |
-| As Reported Fee Income th USD | `reported_fee` |
+| 阶段 | 观测数 | 操作说明 |
+|------|--------|----------|
+| **原始数据合计** | **72,446** | 2个CSV文件总和 |
+| 合并后数据集 | 72,446 | append合并完成 |
+| 前向填充deal_num | 31,420处填充 | 用前一行值填充缺失的交易编号 |
+| 删除重复观测 | 删除 67 | 基于10个ID变量的组合去重 |
+| **acq_legal.dta** | **72,379** | 合并去重后完整数据集 |
 
-### 3. **Financial Abbreviation Dictionary**
+### 目标公司(tar)法律特征子集处理流程
 
-| Term Pattern | Abbreviation | Description |
-|--------------|--------------|-------------|
-| acquiror | `acq` | Acquiror entity |
-| target | `tar` | Target entity |
-| vendor | `ven` | Vendor entity |
-| operating revenue, revenue, turnover | `rev` | Revenue metrics |
-| ebitda | `ebitda` | EBITDA |
-| ebit | `ebit` | EBIT |
-| profit before tax | `pbt` | Profit before tax |
-| profit after tax | `pat` | Profit after tax |
-| net profit | `np` | Net profit |
-| total assets | `ta` | Total assets |
-| net assets | `na` | Net assets |
-| shareholders funds | `eq` | Shareholders equity |
-| market capitalisation | `cap` | Market cap |
-| number of employees | `emp` | Employee count |
-| enterprise value | `ev` | Enterprise value |
-| earnings per share | `eps` | EPS |
-| cash flow per share | `cfps` | CFPS |
-| dividend per share | `dps` | DPS |
-| book value per share | `bvps` | BVPS |
-| last avail yr | `ly` | Last available year |
-| year 1 | `y1` | Year 1 |
-| year 2 | `y2` | Year 2 |
-| first | `1st` | First available |
-| future | `fut` | Future estimates |
-| multiple | `mul` | Multiple values |
-| estimate | `est` | Estimates |
-| year | `yr` | Year indicator |
+| 阶段 | 观测数 | 操作说明 |
+|------|--------|----------|
+| 初始筛选 | 72,379 | 从acq_legal.dta选取tar法律变量 |
+| 删除缺失成立年份 | 删除 34,221 | drop if tar_incorp_d_year==. |
+| 剩余 | 38,158 | |
+| 按ID去重 | 删除 0 | 按deal_num+目标公司ID去重 |
+| **acq_tar_legal.dta** | **38,158** | 最终目标公司法律特征数据集 |
 
-### 4. **Prefix Handling**
-| Pattern | Standardized |
-|---------|--------------|
-| pre_deal_ | `pre_` |
-| post_deal_ | `post_` |
+### 收购公司(acq)法律特征子集处理流程
 
-### 5. **Entity Type Normalization**
-| Pattern | Standardized |
-|---------|--------------|
-| _target_ | `_tar_` |
-| _acquiror_ | `_acq_` |
-| _vendor_ | `_ven_` |
+| 阶段 | 观测数 | 操作说明 |
+|------|--------|----------|
+| 初始筛选 | 72,379 | 从acq_legal.dta选取acq法律变量 |
+| 删除缺失成立年份 | 删除 30,212 | drop if acq_incorp_d_year==. |
+| 剩余 | 42,167 | |
+| 按ID去重 | 删除 4 | 按deal_num+收购公司ID去重 |
+| **acq_acq_legal.dta** | **42,163** | 最终收购公司法律特征数据集 |
+
+### 卖方公司(ven)法律特征子集处理流程
+
+| 阶段 | 观测数 | 操作说明 |
+|------|--------|----------|
+| 初始筛选 | 72,379 | 从acq_legal.dta选取ven法律变量 |
+| 删除缺失成立年份 | 删除 48,433 | drop if ven_incorp_d_year==. |
+| 剩余 | 23,946 | |
+| 按ID去重 | 删除 388 | 按deal_num+卖方公司ID去重 |
+| **acq_ven_legal.dta** | **23,558** | 最终卖方公司法律特征数据集 |
+
+### 目标公司(tar)计数子集处理流程
+
+| 阶段 | 观测数 | 操作说明 |
+|------|--------|----------|
+| 初始筛选 | 72,379 | 从acq_legal.dta选取tar名称和ID |
+| 删除名称为空 | 删除 30,684 | drop if tar_name=="" |
+| 剩余 | 41,695 | |
+| 按ID去重 | 删除 0 | 按deal_num+目标公司ID去重 |
+| 生成计数 | | bysort deal_num: egen tar_count=count(tar_name) |
+| **tar_count.dta** | **41,695** | 目标公司计数数据集 |
+
+### 收购公司(acq)计数子集处理流程
+
+| 阶段 | 观测数 | 操作说明 |
+|------|--------|----------|
+| 初始筛选 | 72,379 | 从acq_legal.dta选取acq名称和ID |
+| 删除名称为空 | 删除 28,021 | drop if acq_name=="" |
+| 剩余 | 44,358 | |
+| 按ID去重 | 删除 4 | 按deal_num+收购公司ID去重 |
+| 生成计数 | | bysort deal_num: egen acq_count=count(acq_name) |
+| **acq_count.dta** | **44,354** | 收购公司计数数据集 |
+
+### 卖方公司(ven)计数子集处理流程
+
+| 阶段 | 观测数 | 操作说明 |
+|------|--------|----------|
+| 初始筛选 | 72,379 | 从acq_legal.dta选取ven名称和ID |
+| 删除名称为空 | 删除 16,178 | drop if ven_name=="" |
+| 剩余 | 56,201 | |
+| 按ID去重 | 删除 540 | 按deal_num+卖方公司ID去重 |
+| 生成计数 | | bysort deal_num: egen ven_count=count(ven_name) |
+| **ven_count.dta** | **55,661** | 卖方公司计数数据集 |
+
+## 变量说明
+
+### acq_legal.dta完整数据集变量 (43个)
+
+#### 通用变量
+
+| 变量名 | 含义 |
+|--------|------|
+| `ïunnamed_0` | 原始行号 |
+| `deal_num` | 交易编号 |
+| `index` | 行索引 |
+
+#### 目标公司(tar)法律变量
+
+| 变量名 | 含义 |
+|--------|------|
+| `tar_status` | 目标公司状态 |
+| `tar_ent_type` | 目标公司实体类型 |
+| `tar_legal_form` | 目标公司法律形式 |
+| `tar_incorp_d` | 目标公司成立日期 |
+| `tar_incorp_d_year` | 目标公司成立年份 |
+| `tar_bvd_indep` | 目标公司BvD独立性指标 |
+| `tar_acct_types` | 目标公司会计类型 |
+| `tar_filing_type` | 目标公司申报类型 |
+| `tar_last_acct_d` | 目标公司最后会计日期 |
+| `tar_last_acct_d_year` | 目标公司最后会计年份 |
+| `tar_acct_pub` | 目标公司会计公开性 |
+| `tar_name` | 目标公司名称 |
+| `tar_bvd_id_num` | 目标公司BvD ID |
+| `tar_orbis_id_num` | 目标公司Orbis ID |
+
+#### 收购公司(acq)法律变量
+
+| 变量名 | 含义 |
+|--------|------|
+| `acq_status` | 收购公司状态 |
+| `acq_ent_type` | 收购公司实体类型 |
+| `acq_legal_form` | 收购公司法律形式 |
+| `acq_incorp_d` | 收购公司成立日期 |
+| `acq_incorp_d_year` | 收购公司成立年份 |
+| `acq_bvd_indep` | 收购公司BvD独立性指标 |
+| `acq_acct_types` | 收购公司会计类型 |
+| `acq_filing_type` | 收购公司申报类型 |
+| `acq_last_acct_d` | 收购公司最后会计日期 |
+| `acq_last_acct_d_year` | 收购公司最后会计年份 |
+| `acq_acct_pub` | 收购公司会计公开性 |
+| `acq_name` | 收购公司名称 |
+| `acq_bvd_id_num` | 收购公司BvD ID |
+| `acq_orbis_id_num` | 收购公司Orbis ID |
+
+#### 卖方公司(ven)法律变量
+
+| 变量名 | 含义 |
+|--------|------|
+| `ven_status` | 卖方公司状态 |
+| `ven_ent_type` | 卖方公司实体类型 |
+| `ven_legal_form` | 卖方公司法律形式 |
+| `ven_incorp_d` | 卖方公司成立日期 |
+| `ven_incorp_d_year` | 卖方公司成立年份 |
+| `ven_bvd_indep` | 卖方公司BvD独立性指标 |
+| `ven_acct_types` | 卖方公司会计类型 |
+| `ven_filing_type` | 卖方公司申报类型 |
+| `ven_last_acct_d` | 卖方公司最后会计日期 |
+| `ven_last_acct_d_year` | 卖方公司最后会计年份 |
+| `ven_acct_pub` | 卖方公司会计公开性 |
+| `ven_name` | 卖方公司名称 |
+| `ven_bvd_id_num` | 卖方公司BvD ID |
+| `ven_orbis_id_num` | 卖方公司Orbis ID |
+
+### 法律特征子集保留的变量
+
+#### acq_tar_legal.dta (13个变量)
+
+| 变量名 | 含义 |
+|--------|------|
+| `deal_num` | 交易编号 |
+| `tar_status` | 目标公司状态 |
+| `tar_ent_type` | 目标公司实体类型 |
+| `tar_legal_form` | 目标公司法律形式 |
+| `tar_incorp_d` | 目标公司成立日期 |
+| `tar_bvd_indep` | 目标公司BvD独立性指标 |
+| `tar_acct_types` | 目标公司会计类型 |
+| `tar_filing_type` | 目标公司申报类型 |
+| `tar_last_acct_d` | 目标公司最后会计日期 |
+| `tar_acct_pub` | 目标公司会计公开性 |
+| `tar_name` | 目标公司名称 |
+| `tar_bvd_id_num` | 目标公司BvD ID |
+| `tar_orbis_id_num` | 目标公司Orbis ID |
+| `tar_incorp_d_year` | 目标公司成立年份 |
+| `tar_last_acct_d_year` | 目标公司最后会计年份 |
+
+#### acq_acq_legal.dta (13个变量)
+
+| 变量名 | 含义 |
+|--------|------|
+| `deal_num` | 交易编号 |
+| `acq_status` | 收购公司状态 |
+| `acq_ent_type` | 收购公司实体类型 |
+| `acq_legal_form` | 收购公司法律形式 |
+| `acq_incorp_d` | 收购公司成立日期 |
+| `acq_bvd_indep` | 收购公司BvD独立性指标 |
+| `acq_acct_types` | 收购公司会计类型 |
+| `acq_filing_type` | 收购公司申报类型 |
+| `acq_last_acct_d` | 收购公司最后会计日期 |
+| `acq_acct_pub` | 收购公司会计公开性 |
+| `acq_name` | 收购公司名称 |
+| `acq_bvd_id_num` | 收购公司BvD ID |
+| `acq_orbis_id_num` | 收购公司Orbis ID |
+| `acq_incorp_d_year` | 收购公司成立年份 |
+| `acq_last_acct_d_year` | 收购公司最后会计年份 |
+
+#### acq_ven_legal.dta (13个变量)
+
+| 变量名 | 含义 |
+|--------|------|
+| `deal_num` | 交易编号 |
+| `ven_status` | 卖方公司状态 |
+| `ven_ent_type` | 卖方公司实体类型 |
+| `ven_legal_form` | 卖方公司法律形式 |
+| `ven_incorp_d` | 卖方公司成立日期 |
+| `ven_bvd_indep` | 卖方公司BvD独立性指标 |
+| `ven_acct_types` | 卖方公司会计类型 |
+| `ven_filing_type` | 卖方公司申报类型 |
+| `ven_last_acct_d` | 卖方公司最后会计日期 |
+| `ven_acct_pub` | 卖方公司会计公开性 |
+| `ven_name` | 卖方公司名称 |
+| `ven_bvd_id_num` | 卖方公司BvD ID |
+| `ven_orbis_id_num` | 卖方公司Orbis ID |
+| `ven_incorp_d_year` | 卖方公司成立年份 |
+| `ven_last_acct_d_year` | 卖方公司最后会计年份 |
+
+### 计数子集生成的变量
+
+| 数据集 | 计数变量 | 含义 |
+|--------|----------|------|
+| tar_count.dta | `tar_count` | 每个交易中目标公司数量 |
+| acq_count.dta | `acq_count` | 每个交易中收购公司数量 |
+| ven_count.dta | `ven_count` | 每个交易中卖方公司数量 |
+
+## 重复记录处理情况
+
+### 法律特征子集
+
+| 实体 | 去重前观测数 | 删除重复数 | 删除率 | 最终观测数 |
+|------|-------------|-----------|--------|------------|
+| 目标公司(tar) | 38,158 | 0 | 0% | 38,158 |
+| 收购公司(acq) | 42,167 | 4 | 0.009% | 42,163 |
+| 卖方公司(ven) | 23,946 | 388 | 1.6% | 23,558 |
+
+### 计数子集
+
+| 实体 | 去重前观测数 | 删除重复数 | 删除率 | 最终观测数 |
+|------|-------------|-----------|--------|------------|
+| 目标公司(tar) | 41,695 | 0 | 0% | 41,695 |
+| 收购公司(acq) | 44,358 | 4 | 0.009% | 44,354 |
+| 卖方公司(ven) | 56,201 | 540 | 0.96% | 55,661 |
+
+## 缺失值处理情况
+
+### 各实体缺失成立年份情况
+
+| 实体 | 初始观测数 | 缺失年份删除数 | 删除率 | 最终保留数 |
+|------|-----------|-----------------|--------|------------|
+| 目标公司(tar) | 72,379 | 34,221 | 47.3% | 38,158 |
+| 收购公司(acq) | 72,379 | 30,212 | 41.7% | 42,167 |
+| 卖方公司(ven) | 72,379 | 48,433 | 66.9% | 23,946 |
+
+### 各实体名称为空情况
+
+| 实体 | 初始观测数 | 名称缺失删除数 | 删除率 | 最终保留数 |
+|------|-----------|-----------------|--------|------------|
+| 目标公司(tar) | 72,379 | 30,684 | 42.4% | 41,695 |
+| 收购公司(acq) | 72,379 | 28,021 | 38.7% | 44,358 |
+| 卖方公司(ven) | 72,379 | 16,178 | 22.4% | 56,201 |
+
+## 关键观察
+
+1. **原始数据总量**：72,446条观测，来自2个批次文件
+   - 文件1: 51,428 obs (71%)
+   - 文件2: 21,018 obs (29%)
+
+2. **数据清洗**：
+   - ID变量从数值型转为字符型，防止精度丢失
+   - 将字符串中的"n.a."/"n.s."/"-"/"NA"替换为空值
+   - 对`deal_num`进行前向填充，填充了31,420处缺失
+   - 通过`compress`命令压缩数据节省空间
+
+3. **重复记录**：
+   - 整体去重删除67条记录(0.09%)
+   - 卖方公司层面重复率最高(1.6%)，说明同一卖方可能出现在多个交易中
+
+4. **成立年份缺失情况**：
+   - 目标公司：47.3%缺失成立年份
+   - 收购公司：41.7%缺失成立年份
+   - 卖方公司：66.9%缺失成立年份
+   - 卖方公司成立年份缺失最严重
+
+5. **公司名称缺失情况**：
+   - 目标公司：42.4%名称为空
+   - 收购公司：38.7%名称为空
+   - 卖方公司：22.4%名称为空
+   - 卖方公司名称相对最完整
+
+6. **实体分布**：
+   - 目标公司：38,158条有成立年份的记录
+   - 收购公司：42,163条有成立年份的记录
+   - 卖方公司：23,558条有成立年份的记录
+   - 卖方公司数量明显少于买卖双方，符合并购交易结构
+
+7. **公司数量统计**：
+   - 平均每个交易有`tar_count`个目标公司
+   - 平均每个交易有`acq_count`个收购公司
+   - 平均每个交易有`ven_count`个卖方公司
+
+## 核心用途
+
+这个数据集提供并购交易中**目标公司、收购公司和卖方公司**的法律特征信息，可用于：
+
+- 公司法律形式分布分析
+- 公司成立年份与并购活动的关系研究
+- 公司会计类型与信息披露质量分析
+- 公司独立性指标对并购决策的影响
+- 公司法律特征与交易成功的相关性分析
+- 与财务数据、行业数据匹配后进行综合分析
