@@ -1,5 +1,44 @@
 # Company Financial Dataset - Processing Pipeline & Variable Definition
+原始CSV文件 (1-8号)
 
+### ├── acquisition_company_financial_1_cleaned.csv: 14,498 obs
+### ├── acquisition_company_financial_2_cleaned.csv: 13,772 obs
+### ├── acquisition_company_financial_3_cleaned.csv: 11,553 obs
+### ├── acquisition_company_financial_4_cleaned.csv: 10,554 obs
+### ├── acquisition_company_financial_5_cleaned.csv: 9,614 obs
+### ├── acquisition_company_financial_6_cleaned.csv: 9,060 obs
+### ├── acquisition_company_financial_7_cleaned.csv: 3,395 obs
+### ├── acquisition_company_financial_8_cleaned.csv: 3,395 obs
+### └── 合计: 75,841 obs
+### ↓
+### process_file程序清洗
+### (关键ID变量转字符串、将n.a./n.s./-替换为空)
+### ↓
+### 临时文件 (acq_com_fin_1-8.dta): 各文件保留原观测数
+### ↓
+### append合并
+### ↓
+### 合并后数据集: 75,841 obs
+### ↓
+### 按deal_num前向填充缺失值: 32,249处填充
+### ↓
+### 按10个ID变量组合去重: 删除 3,462 obs (重复记录)
+### ↓
+### destring所有财务指标变量 (从字符串转为数值)
+### ↓
+### acq_com_fin.dta: 72,379 obs
+### ↓
+### 计算财务比率 (盈利能力、杠杆、周转率等指标)
+### ↓
+### 按实体拆分数据集
+### ├── 目标公司(tar)层面: 保留 19,877 obs
+### └── 收购公司(acq)层面: 保留 18,281 obs
+### ↓
+### 为所有财务变量生成对数版本 (144个 ln_* 变量)
+### ↓
+### acq_com_fin_with_ln.dta: 72,379 obs (完整数据集)
+### acq_tar_fin.dta: 19,877 obs (目标公司子集)
+### acq_acq_fin.dta: 18,281 obs (收购公司子集)
 ## 1. Data Volume Change Flowchart
 The flowchart above illustrates the full processing pipeline for the Company Financial dataset, with key data volume changes at each step.
 
@@ -12,6 +51,20 @@ The flowchart above illustrates the full processing pipeline for the Company Fin
 | acq_tar_fin.dta (Target)    | 72,379      | Deduplicate by deal_num + target ID     | 19,877      | 52,502    |
 | acq_acq_fin.dta (Acquirer)  | 72,379      | Deduplicate by deal_num + acquirer ID   | 18,281      | 54,098    |
 | acq_com_fin_with_ln.dta     | 72,379      | Add 144 log variables                   | 0           | 72,379    |
+
+## 缺失值情况
+
+| 变量 | 缺失值数量 | 缺失率 |
+|------|-----------|--------|
+| `deal_num` | 0 | 0% |
+| `tar_rev_rev_last_avail_yr` | 34,139 | 47.2% |
+| `tar_ebitda_last_avail_yr` | 54,343 | 75.1% |
+| `tar_ta_last_avail_yr` | 35,415 | 48.9% |
+| `tar_emp_last_avail_yr` | 48,309 | 66.7% |
+| `tar_ev_last_avail_yr` | 70,547 | 97.5% |
+| `acq_rev_rev_last_avail_yr` | 33,052 | 45.7% |
+| `acq_ta_last_avail_yr` | 31,498 | 43.5% |
+| `ven_rev_rev_last_avail_yr` | 55,992 | 77.4% |
 
 ## 3. Financial Ratio Generation
 ### 3.1 Target Company Ratios (21 Total: 7 Categories × 3 Time Points)
@@ -69,19 +122,10 @@ The flowchart above illustrates the full processing pipeline for the Company Fin
 5. **Variable Generation**: 39 financial ratios (21 Target + 18 Acquirer) and 144 log-transformed variables for regression analysis.
 6. **Data Quality**: Severe missing values (30k-70k per financial metric) reflect incomplete raw financial data.
 
-## 6. Core Use Cases
-This dataset provides comprehensive financial data for Target/Acquirer/Vendor companies, including:
-- Raw financial metrics (Revenue, EBITDA, Total Assets, etc.)
-- Calculated financial ratios (Profitability, Efficiency, Leverage)
-- Log-transformed size metrics
-- Used for financial performance analysis, M&A research, and regression modeling (as control variables).
-
 # Financial Data Processing and Ratio Calculation - Stata Workflow
 
 ## 📊 Workflow Overview
 This Stata do-file processes cleaned financial data files, merges them, performs forward-filling of deal numbers, calculates financial ratios for target and acquirer companies, creates logarithmic transformations, and generates separate datasets for target and acquirer financial metrics.
-
----
 
 ## 🔧 Main Processing Steps
 
@@ -106,30 +150,10 @@ This Stata do-file processes cleaned financial data files, merges them, performs
 
 ### 3. **Data Append and Cleaning**
 
-```stata
-// Append all files
-forvalues i = 1/4 {
-    append using "acq_fin_`i'.dta"
-}
-
-// Forward-fill deal_num
-sort index
-replace deal_num = deal_num[_n-1] if deal_num == "" & deal_num[_n-1] != ""
-// 31,420 changes made
-
-// Keep unique records by entity combination
-bysort deal_num tar_name tar_bvd_id_num tar_orbis_id_num acq_name acq_bvd_id_num acq_orbis_id_num ven_name ven_bvd_id_num ven_orbis_id_num: keep if _n == 1
-// 67 observations deleted
-Outliers: Extreme values present (millions) - may need winsorization
-
-Observation Counts: Final deduplicated file has fewer observations than raw sum
-
-Log Transformations: Only calculated for positive values
-
 Relative Metrics: Limited observations due to requiring both entities
-### 📈 Financial Ratio Calculations
+## 📈 Financial Ratio Calculations
 
-#### Target Company Ratios (Pre-deal)
+## Target Company Ratios (Pre-deal)
 | Ratio | Formula | Observations |
 |-------|---------|--------------|
 | Profit Margin | PAT / Revenue | 29,132 |
@@ -182,42 +206,6 @@ Relative Metrics: Limited observations due to requiring both entities
 | Acquirer ROA Change | Post ROA - Pre ROA | 18,506 |
 | Target Profit Margin Change | Post Margin - Pre Margin | 17,795 |
 | Acquirer Profit Margin Change | Post Margin - Pre Margin | 23,011 |
-
-### 📊 Summary Statistics
-
-#### Target Pre-deal Ratios
-| Variable | Obs | Mean | Std Dev | Min | Max |
-|----------|-----|------|---------|-----|-----|
-| Profit Margin | 29,132 | 2,029.7 | 950,396 | -78.1M | 142M |
-| ROA | 17,719 | 81.03 | 10,667 | -44,973 | 1.42M |
-| Leverage Ratio | 3,584 | 0.608 | 1.530 | -1.063 | 67.46 |
-| EBITDA Margin | 17,688 | -93.09 | 14,143 | -1.49M | 1.04M |
-| Asset Turnover | 33,943 | 1,214 | 215,292 | -0.795 | 39.7M |
-
-#### Acquirer Pre-deal Ratios
-| Variable | Obs | Mean | Std Dev | Min | Max |
-|----------|-----|------|---------|-----|-----|
-| Profit Margin | 31,033 | -31,355 | 5.19M | -664M | 261M |
-| ROA | 21,597 | 166.8 | 12,837 | -36,259 | 942,782 |
-| Leverage Ratio | 11,547 | 0.628 | 11.13 | 0.0004 | 1,191 |
-| EBITDA Margin | 21,251 | -387.6 | 25,452 | -2.49M | 89,535 |
-| Asset Turnover | 34,321 | 116.4 | 10,260 | -0.197 | 947,555 |
-
-#### Relative Metrics
-| Variable | Obs | Mean | Std Dev | Min | Max |
-|----------|-----|------|---------|-----|-----|
-| Relative Profit Margin | 22,455 | -57,425 | 6.53M | -714M | 78.1M |
-| Relative ROA | 13,116 | 177.0 | 20,604 | -1.42M | 942,782 |
-| Relative Size | 28,880 | 2.237 | 2.538 | -20.32 | 23.78 |
-| Relative Leverage | 2,085 | 0.564 | 26.10 | -7.029 | 1,191 |
-
-#### Change Metrics
-| Variable | Obs | Mean | Std Dev | Min | Max |
-|----------|-----|------|---------|-----|-----|
-| Target ROA Change | 11,381 | -4.103 | 1,076 | -104,943 | 44,973 |
-| Acquirer ROA Change | 18,506 | -19.30 | 1,904 | -183,061 | 8,457 |
-| Target Margin Change | 17,795 | 347.1 | 48,832 | -3.48M | 4.35M |
-| Acquirer Margin Change | 23,011 | -4,674 | 981,342 | -146M | 27.4M |
 
 ### 📁 Output Files
 | File | Description | Variables |
