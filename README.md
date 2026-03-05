@@ -20,11 +20,11 @@
 | Acquiror name | 🟢`acq_name` |
 | Acquiror BvD ID number |🟢 `acq_bvd_id_num` |
 | Acquiror Orbis ID number | 🟢`acq_orbis_id_num` |
-| Vendor name |🟢 `ven_name` |
-| Vendor BvD ID number |🟢 `ven_bvd_id_num` |
-| Vendor Orbis ID number | 🟢`ven_orbis_id_num` |
-| Acquiror country code |🟢 `acq_country` |
-| Target country code |🟢 `tar_country` |
+| Vendor name |`ven_name` |
+| Vendor BvD ID number |`ven_bvd_id_num` |
+| Vendor Orbis ID number | `ven_orbis_id_num` |
+| Acquiror country code | `acq_country` |
+| Target country code | `tar_country` |
 
 #### **Deal Value Metrics**
 | Original Pattern | Standardized Output |
