@@ -1,25 +1,30 @@
+### Color Coding Legend
+| Color Symbol | Type               | Purpose                                                                 |
+|--------------|--------------------|-------------------------------------------------------------------------|
+| 🔴 Red       | Primary Key        | Marks the unique identifier (`deal_num`) that uniquely identifies each deal |
+| 🟢 Green     | Deduplication Key  | Marks fields used to eliminate duplicate records for related entities   |
 ## MA firm financial information ##
 #### **Basic Deal Information**
 | Original Pattern | Standardized Output |
 |-----------------|---------------------|
-| Deal Number | `deal_num` |
+| Deal Number | 🔴 `deal_num` |
 | Deal type | `deal_type` |
 | Deal status | `deal_status` |
 
 #### **Entity Identifiers**
 | Original Pattern | Standardized Output |
 |-----------------|---------------------|
-| Target name | `tar_name` |
-| Target BvD ID number | `tar_bvd_id_num` |
-| Target Orbis ID number | `tar_orbis_id_num` |
-| Acquiror name | `acq_name` |
-| Acquiror BvD ID number | `acq_bvd_id_num` |
-| Acquiror Orbis ID number | `acq_orbis_id_num` |
-| Vendor name | `ven_name` |
-| Vendor BvD ID number | `ven_bvd_id_num` |
-| Vendor Orbis ID number | `ven_orbis_id_num` |
-| Acquiror country code | `acq_country` |
-| Target country code | `tar_country` |
+| Target name | 🟢`tar_name` |
+| Target BvD ID number |🟢 `tar_bvd_id_num` |
+| Target Orbis ID number | 🟢`tar_orbis_id_num` |
+| Acquiror name | 🟢`acq_name` |
+| Acquiror BvD ID number |🟢 `acq_bvd_id_num` |
+| Acquiror Orbis ID number | 🟢`acq_orbis_id_num` |
+| Vendor name |🟢 `ven_name` |
+| Vendor BvD ID number |🟢 `ven_bvd_id_num` |
+| Vendor Orbis ID number | 🟢`ven_orbis_id_num` |
+| Acquiror country code |🟢 `acq_country` |
+| Target country code |🟢 `tar_country` |
 
 #### **Deal Value Metrics**
 | Original Pattern | Standardized Output |
