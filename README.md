@@ -1,88 +1,78 @@
-### Color Coding Legend
-| Color Symbol | Type               | Purpose                                                                 |
-|--------------|--------------------|-------------------------------------------------------------------------|
-| 🔴 Red       | Primary Key        | Marks the unique identifier (`deal_num`) that uniquely identifies each deal |
-| 🟢 Green     | Deduplication Key  | Marks fields used to eliminate duplicate records for related entities   |
-## MA firm financial information ##
-#### **Basic Deal Information**
-| Original Pattern | Standardized Output |
-|-----------------|---------------------|
-| Deal Number | 🔴 `deal_num` |
-| Deal type | `deal_type` |
-| Deal status | `deal_status` |
 
-#### **Entity Identifiers**
-| Original Pattern | Standardized Output |
-|-----------------|---------------------|
-| Target name | 🟢`tar_name` |
-| Target BvD ID number |🟢 `tar_bvd_id_num` |
-| Target Orbis ID number | 🟢`tar_orbis_id_num` |
-| Acquiror name | 🟢`acq_name` |
-| Acquiror BvD ID number |🟢 `acq_bvd_id_num` |
-| Acquiror Orbis ID number | 🟢`acq_orbis_id_num` |
-| Vendor name |`ven_name` |
-| Vendor BvD ID number |`ven_bvd_id_num` |
-| Vendor Orbis ID number | `ven_orbis_id_num` |
-| Acquiror country code | `acq_country` |
-| Target country code | `tar_country` |
+## 📋 完整数据量变化汇总表
 
-#### **Deal Value Metrics**
-| Original Pattern | Standardized Output |
-|-----------------|---------------------|
-| Deal value th USD | `DV` |
-| Deal value (Native currency) th USD | `DV_local` |
-| Deal equity value th USD | `EQV` |
-| Deal equity value (Native currency) th USD | `EQV_local` |
-| Deal enterprise value th USD | `EV` |
-| Deal enterprise value (Native currency) th USD | `EV_local` |
-| Deal modelled enterprise value th USD | `MEV` |
-| Deal modelled enterprise value (Native currency) th USD | `MEV_local` |
-| Deal total target value th USD | `T_tar_value` |
-| Deal total target value (Native currency) th USD | `T_tar_value_local` |
-| Modelled Fee Income th USD | `M_fee` |
-| As Reported Fee Income th USD | `reported_fee` |
+| 数据集 | 初始观测数 | 操作 | 删除数量 | 最终观测数 |
+|--------|-----------|------|---------|-----------|
+| **原始数据合计** | **75,841** | - | - | - |
+| 合并后数据集 | 75,841 | - | - | 75,841 |
+| 前向填充后 | 75,841 | 填充32,249个deal_num | - | 75,841 |
+| 去重后 | 75,841 | 按公司标识去重 | 3,462 | **72,379** |
+| `acq_tar_fin.dta` | 72,379 | 目标公司去重 | 19,877 | **52,502** |
+| `acq_acq_fin.dta` | 72,379 | 收购方去重 | 18,281 | **54,098** |
+| `acq_com_fin_with_ln.dta` | 72,379 | 生成对数变量 | 0 | **72,379** |
 
-### 3. **Financial Abbreviation Dictionary**
+## 📐 财务比率生成汇总
 
-| Term Pattern | Abbreviation | Description |
-|--------------|--------------|-------------|
-| acquiror | `acq` | Acquiror entity |
-| target | `tar` | Target entity |
-| vendor | `ven` | Vendor entity |
-| operating revenue, revenue, turnover | `rev` | Revenue metrics |
-| ebitda | `ebitda` | EBITDA |
-| ebit | `ebit` | EBIT |
-| profit before tax | `pbt` | Profit before tax |
-| profit after tax | `pat` | Profit after tax |
-| net profit | `np` | Net profit |
-| total assets | `ta` | Total assets |
-| net assets | `na` | Net assets |
-| shareholders funds | `eq` | Shareholders equity |
-| market capitalisation | `cap` | Market cap |
-| number of employees | `emp` | Employee count |
-| enterprise value | `ev` | Enterprise value |
-| earnings per share | `eps` | EPS |
-| cash flow per share | `cfps` | CFPS |
-| dividend per share | `dps` | DPS |
-| book value per share | `bvps` | BVPS |
-| last avail yr | `ly` | Last available year |
-| year 1 | `y1` | Year 1 |
-| year 2 | `y2` | Year 2 |
-| first | `1st` | First available |
-| future | `fut` | Future estimates |
-| multiple | `mul` | Multiple values |
-| estimate | `est` | Estimates |
-| year | `yr` | Year indicator |
+### 目标公司(Target)财务比率 - 7类 × 3年 = 21个
+| 比率类别 | ly (最新年) | y1 (前1年) | y2 (前2年) |
+|---------|------------|-----------|-----------|
+| 利润率 (profit_margin) | ✓ | ✓ | ✓ |
+| 资产收益率 (roa) | ✓ | ✓ | ✓ |
+| 杠杆率 (leverage) | ✓ | ✓ | ✓ |
+| EBITDA利润率 (ebitda_margin) | ✓ | ✓ | ✓ |
+| 资产周转率 (asset_turnover) | ✓ | ✓ | ✓ |
+| 人均收入 (rev_per_emp) | ✓ | ✓ | ✓ |
+| 规模指标 (ta/emp/cap/ev取ln) | ✓ | ✓ | ✓ |
 
-### 4. **Prefix Handling**
-| Pattern | Standardized |
-|---------|--------------|
-| pre_deal_ | `pre_` |
-| post_deal_ | `post_` |
+### 收购方(Acquirer)财务比率 - 6类 × 3年 = 18个
+| 比率类别 | ly (最新年) | y1 (前1年) | y2 (前2年) |
+|---------|------------|-----------|-----------|
+| 利润率 (profit_margin) | ✓ | ✓ | ✓ |
+| 资产收益率 (roa) | ✓ | ✓ | ✓ |
+| 杠杆率 (leverage) | ✓ | ✓ | ✓ |
+| EBITDA利润率 (ebitda_margin) | ✓ | ✓ | ✓ |
+| 资产周转率 (asset_turnover) | ✓ | ✓ | ✓ |
+| 规模指标 (ta/emp/cap/ev取ln) | ✓ | ✓ | ✓ |
 
-### 5. **Entity Type Normalization**
-| Pattern | Standardized |
-|---------|--------------|
-| _target_ | `_tar_` |
-| _acquiror_ | `_acq_` |
-| _vendor_ | `_ven_` |
+## �对数变量生成 - 共144个
+
+### 命名规则
+- **前缀**: `ln_` (对数)
+- **实体**: `t`(目标), `a`(收购方), `v`(卖方)
+- **指标**: `rev`(收入), `ebd`(EBITDA), `ta`(总资产), `cap`(市值), `emp`(员工数)等
+- **时间**: `0`(最新年), `1`(前1年), `2`(前2年)
+
+### 变量命名示例
+| 变量名 | 含义 |
+|--------|------|
+| `ln_t_rev_0` | 目标公司最新年收入(对数) |
+| `ln_a_cap_1` | 收购方前1年市值(对数) |
+| `ln_v_ebd_2` | 卖方前2年EBITDA(对数) |
+
+### 各类公司指标数量分布
+| 公司类型 | 指标类别数 | 时间点 | 总变量数 |
+|---------|-----------|--------|---------|
+| 目标公司(Target) | 16 | 3 | 48 |
+| 收购方(Acquirer) | 16 | 3 | 48 |
+| 卖方(Vendor) | 16 | 3 | 48 |
+| **总计** | **48** | - | **144** |
+
+## 🔍 关键观察结论
+
+1. **原始数据规模**：75,841条观测记录，来源于8个批次的CSV文件
+2. **缺失值填充**：32,249个deal_num缺失值通过前向填充完成(占比42.5%)
+3. **数据去重效果**：
+   - 原始重复率9.11%(6,908条)，去重后保留72,379条有效观测
+   - 交易-公司维度二次去重：目标方保留52,502条，收购方保留54,098条
+4. **衍生变量生成**：
+   - 财务比率：39个(目标21个+收购18个)
+   - 对数变量：144个(覆盖三类公司×16类指标×3个时间点)
+5. **数据质量问题**：各财务指标缺失值严重(3万-7万条不等)，反映原始数据完整性不足
+
+## 🎯 核心用途
+
+该数据集为收购交易分析提供多维度财务支撑，主要用于：
+- 目标公司/收购方/卖方的财务健康度评估
+- 收购前后的财务绩效对比分析
+- 回归模型中的核心解释变量和控制变量
+- 公司规模、盈利能力、运营效率的量化分析
